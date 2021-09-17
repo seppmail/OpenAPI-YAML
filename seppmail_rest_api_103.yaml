@@ -11,7 +11,7 @@ info:
     name: Apache 2.0
     url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
     x-comment: we have to fix the license
-  version: 1.0.2
+  version: 1.0.3
 servers:
   - url: 'https://{server}:{port}/v1'
     description: internal development server
@@ -33,6 +33,10 @@ components:
 tags:
   - name: customer
     description: customer data related operations
+  - name: filter / blwl
+    description: filter black- and whitelisting related operations
+  - name: filter / config
+    description: filter config related operations
   - name: group
     description: group data related operations
   - name: info
@@ -84,6 +88,25 @@ paths:
             type: boolean
             default: false
           description: 'if true, return an array of names instead of detailed information'
+        - name: uid
+          in: query
+          description: limit output to a specific UID
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: string
+            description: String representing the UID of an user
+          example: admin
+        - name: email
+          in: query
+          description: limit output to a specific e-Mail address
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: string
+            format: email
+            example: john.doe@domain.com
+          example: john.doe@domain.com
       responses:
         '200':
           description: A JSON object holding the information about users
@@ -263,6 +286,7 @@ paths:
         schema:
           type: string
           format: email
+          example: john.doe@domain.com
         example: john.doe@domain.com
     get:
       tags:
@@ -482,6 +506,214 @@ paths:
                     format: int32
                   errorMessage:
                     type: string
+  /customer:
+    get:
+      tags:
+        - customer
+      summary: Get information about or a list of customers
+      description: >-
+        With this GET request you can get information about customers or a list
+        of available customers.
+      operationId: customer_get
+      x-mojo-to: 'RestAPI::Customer#api_get'
+      parameters:
+        - in: query
+          name: list
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: 'if true, return an array of names instead of detailed information'
+      responses:
+        '200':
+          description: An array with customer names
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    title: Get customer info object scheme
+                    additionalProperties:
+                      type: object
+                      title: Get customer info object
+                      properties:
+                        adminEmail:
+                          type: string
+                          format: email
+                          example: john.doe@domain.com
+                        admins:
+                          type: array
+                          items:
+                            type: string
+                            format: email
+                            example: john.doe@domain.com
+                        comment:
+                          type: string
+                        creator:
+                          type: string
+                        defaultGINADomain:
+                          type: string
+                        deleteOldMessagesGracePeriod:
+                          type: integer
+                          minimum: 0
+                          default: 0
+                        deleteUnregistered:
+                          type: integer
+                          minimum: 0
+                          default: 0
+                        description:
+                          type: string
+                        mailRoutes:
+                          type: array
+                          items:
+                            type: string
+                        maximumEncryptionLicenses:
+                          type: integer
+                          minimum: 0
+                        maximumLFTLicenses:
+                          type: integer
+                          minimum: 0
+                        name:
+                          type: string
+                          title: Customer name scheme
+                          pattern: '^[a-zA-Z0-9\-_]+$|^\[(default|none)\]$'
+                          example: CustomerName
+                        sendBackupToAdmin:
+                          type: boolean
+                          default: false
+                    example:
+                      Customer1:
+                        adminEmail: foo.bar@chaos.int
+                        admins:
+                          - bar.foo@int.chaos
+                        comment: ''
+                        creator: 'Created by admin on Wed Jun 26 16:21:19 2019'
+                        defaultGINADomain: ''
+                        deleteOldMessagesGracePeriod: 0
+                        deleteUnregistered: 0
+                        description: Customer1
+                        mailRoutes:
+                          - int.chaos
+                        maximumEncryptionLicenses: ''
+                        maximumLFTLicenses: ''
+                        name: Customer1
+                        sendBackupToAdmin: false
+                  - type: array
+                    items:
+                      type: string
+                      title: Customer name scheme
+                      pattern: '^[a-zA-Z0-9\-_]+$|^\[(default|none)\]$'
+                      example: CustomerName
+                    example:
+                      - CustomerName
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+    post:
+      tags:
+        - customer
+      summary: Add a new customer
+      description: With this POST request you can add a new customer.
+      operationId: customer_add
+      x-mojo-to: 'RestAPI::Customer#api_add'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              title: Create customer object scheme
+              description: Customer object for customer creation
+              required:
+                - name
+              properties:
+                adminEmail:
+                  type: string
+                  format: email
+                  example: john.doe@domain.com
+                  default: ''
+                admins:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                    example: john.doe@domain.com
+                  default: []
+                backupPassword:
+                  type: string
+                  format: password
+                  example: v3ryS3cUr3
+                  default: ''
+                comment:
+                  type: string
+                  default: ''
+                defaultGINADomain:
+                  type: string
+                  default: '[default]'
+                deleteOldMessagesGracePeriod:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                deleteUnregistered:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                description:
+                  type: string
+                  default: ''
+                mailRoutes:
+                  type: array
+                  items:
+                    type: string
+                  default: []
+                maximumEncryptionLicenses:
+                  type: integer
+                  minimum: 0
+                maximumLFTLicenses:
+                  type: integer
+                  minimum: 0
+                name:
+                  type: string
+                  title: Customer name scheme
+                  pattern: '^[a-zA-Z0-9\-_]+$|^\[(default|none)\]$'
+                  example: CustomerName
+                sendBackupToAdmin:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
   '/customer/{customer}':
     parameters:
       - name: customer
@@ -525,6 +757,8 @@ paths:
                       type: array
                       items:
                         type: string
+                        format: email
+                        example: john.doe@domain.com
                     comment:
                       type: string
                     creator:
@@ -563,8 +797,7 @@ paths:
                   Customer1:
                     adminEmail: foo.bar@chaos.int
                     admins:
-                      - >-
-                        cn=bar.foo@int.chaos,ou=seppUsers,dc=seppmailserver,dc=ch
+                      - bar.foo@int.chaos
                     comment: ''
                     creator: 'Created by admin on Wed Jun 26 16:21:19 2019'
                     defaultGINADomain: ''
@@ -616,6 +849,8 @@ paths:
                   type: array
                   items:
                     type: string
+                    format: email
+                    example: john.doe@domain.com
                 backupPassword:
                   type: string
                   format: password
@@ -750,211 +985,6 @@ paths:
                     format: int32
                   errorMessage:
                     type: string
-  /customer:
-    get:
-      tags:
-        - customer
-      summary: Get information about or a list of customers
-      description: >-
-        With this GET request you can get information about customers or a list
-        of available customers.
-      operationId: customer_get
-      x-mojo-to: 'RestAPI::Customer#api_get'
-      parameters:
-        - in: query
-          name: list
-          required: false
-          schema:
-            type: boolean
-            default: false
-          description: 'if true, return an array of names instead of detailed information'
-      responses:
-        '200':
-          description: An array with customer names
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - type: object
-                    title: Get customer info object scheme
-                    additionalProperties:
-                      type: object
-                      title: Get customer info object
-                      properties:
-                        adminEmail:
-                          type: string
-                          format: email
-                          example: john.doe@domain.com
-                        admins:
-                          type: array
-                          items:
-                            type: string
-                        comment:
-                          type: string
-                        creator:
-                          type: string
-                        defaultGINADomain:
-                          type: string
-                        deleteOldMessagesGracePeriod:
-                          type: integer
-                          minimum: 0
-                          default: 0
-                        deleteUnregistered:
-                          type: integer
-                          minimum: 0
-                          default: 0
-                        description:
-                          type: string
-                        mailRoutes:
-                          type: array
-                          items:
-                            type: string
-                        maximumEncryptionLicenses:
-                          type: integer
-                          minimum: 0
-                        maximumLFTLicenses:
-                          type: integer
-                          minimum: 0
-                        name:
-                          type: string
-                          title: Customer name scheme
-                          pattern: '^[a-zA-Z0-9\-_]+$|^\[(default|none)\]$'
-                          example: CustomerName
-                        sendBackupToAdmin:
-                          type: boolean
-                          default: false
-                    example:
-                      Customer1:
-                        adminEmail: foo.bar@chaos.int
-                        admins:
-                          - >-
-                            cn=bar.foo@int.chaos,ou=seppUsers,dc=seppmailserver,dc=ch
-                        comment: ''
-                        creator: 'Created by admin on Wed Jun 26 16:21:19 2019'
-                        defaultGINADomain: ''
-                        deleteOldMessagesGracePeriod: 0
-                        deleteUnregistered: 0
-                        description: Customer1
-                        mailRoutes:
-                          - int.chaos
-                        maximumEncryptionLicenses: ''
-                        maximumLFTLicenses: ''
-                        name: Customer1
-                        sendBackupToAdmin: false
-                  - type: array
-                    items:
-                      type: string
-                      title: Customer name scheme
-                      pattern: '^[a-zA-Z0-9\-_]+$|^\[(default|none)\]$'
-                      example: CustomerName
-                    example:
-                      - CustomerName
-        '500':
-          description: An general error response
-          content:
-            application/json:
-              schema:
-                type: object
-                title: General error scheme
-                properties:
-                  errorCode:
-                    type: integer
-                    format: int32
-                  errorMessage:
-                    type: string
-    post:
-      tags:
-        - customer
-      summary: Add a new customer
-      description: With this POST request you can add a new customer.
-      operationId: customer_add
-      x-mojo-to: 'RestAPI::Customer#api_add'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              title: Create customer object scheme
-              description: Customer object for customer creation
-              required:
-                - name
-              properties:
-                adminEmail:
-                  type: string
-                  format: email
-                  example: john.doe@domain.com
-                  default: ''
-                admins:
-                  type: array
-                  items:
-                    type: string
-                  default: []
-                backupPassword:
-                  type: string
-                  format: password
-                  example: v3ryS3cUr3
-                  default: ''
-                comment:
-                  type: string
-                  default: ''
-                defaultGINADomain:
-                  type: string
-                  default: '[default]'
-                deleteOldMessagesGracePeriod:
-                  type: integer
-                  minimum: 0
-                  default: 0
-                deleteUnregistered:
-                  type: integer
-                  minimum: 0
-                  default: 0
-                description:
-                  type: string
-                  default: ''
-                mailRoutes:
-                  type: array
-                  items:
-                    type: string
-                  default: []
-                maximumEncryptionLicenses:
-                  type: integer
-                  minimum: 0
-                maximumLFTLicenses:
-                  type: integer
-                  minimum: 0
-                name:
-                  type: string
-                  title: Customer name scheme
-                  pattern: '^[a-zA-Z0-9\-_]+$|^\[(default|none)\]$'
-                  example: CustomerName
-                sendBackupToAdmin:
-                  type: boolean
-                  default: false
-      responses:
-        '200':
-          description: A success message
-          content:
-            application/json:
-              schema:
-                type: object
-                title: Success message scheme
-                properties:
-                  message:
-                    type: string
-        '500':
-          description: An general error response
-          content:
-            application/json:
-              schema:
-                type: object
-                title: General error scheme
-                properties:
-                  errorCode:
-                    type: integer
-                    format: int32
-                  errorMessage:
-                    type: string
   '/customer/{customer}/adminuser':
     parameters:
       - name: customer
@@ -1041,6 +1071,120 @@ paths:
                     example: john.doe@domain.com
                   example:
                     - john.doe@domain.com
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+  '/customer/{customer}/mailroute':
+    parameters:
+      - name: customer
+        in: path
+        description: limit output to a specific customer
+        allowEmptyValue: false
+        style: simple
+        required: true
+        schema:
+          type: string
+          title: Customer name scheme
+          pattern: '^[a-zA-Z0-9\-_]+$|^\[(default|none)\]$'
+          example: CustomerName
+        example: CustomerName
+    post:
+      tags:
+        - customer
+      summary: Add managed domains to a customer
+      description: With this POST request you can add managed domains to a customer.
+      operationId: customer_name_mailoue_add
+      x-mojo-to:
+        - 'RestAPI::Customer#api_mailroute'
+        - operation: add
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mailRoutes:
+                  type: array
+                  items:
+                    type: string
+                    description: String representing a domain name
+                    pattern: '^((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                    example: domain.com
+                  example:
+                    - domain1.com
+                    - domain2.com
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+    put:
+      tags:
+        - customer
+      summary: Delete managed domains from a customer
+      description: With this PUT request you can delete magaed domains from a customer.
+      operationId: customer_name_mailroute_delete
+      x-mojo-to:
+        - 'RestAPI::Customer#api_mailroute'
+        - operation: delete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mailRoutes:
+                  type: array
+                  items:
+                    type: string
+                    description: String representing a domain name
+                    pattern: '^((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                    example: domain.com
+                  example:
+                    - domain1.com
+                    - domain2.com
       responses:
         '200':
           description: A success message
@@ -1441,6 +1585,8 @@ paths:
               title: Modify group object scheme
               description: Group object for changes
               properties:
+                name:
+                  type: string
                 description:
                   type: string
                 members:
@@ -1452,6 +1598,7 @@ paths:
                   example:
                     - john.doe@domain.com
               example:
+                name: GroupName
                 description: Description for the group GroupName
                 members:
                   - admin@domain.com
@@ -1918,6 +2065,8 @@ paths:
                   type: string
                   description: String representing a name
                   example: Name
+                creationInfo:
+                  type: string
                 password:
                   type: string
                   format: password
@@ -2037,6 +2186,7 @@ paths:
         schema:
           type: string
           format: email
+          example: john.doe@domain.com
         example: john.doe@domain.com
     put:
       tags:
@@ -2276,7 +2426,7 @@ paths:
                       properties:
                         templateName:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         subject:
                           type: string
                           description: subject of the mail this template is used for
@@ -2408,7 +2558,7 @@ paths:
               properties:
                 templateName:
                   type: string
-                  pattern: '^[^\s#]+$'
+                  pattern: '^[^\s#]*$'
                 subject:
                   type: string
                   description: subject of the mail this template is used for
@@ -2571,7 +2721,7 @@ paths:
         required: true
         schema:
           type: string
-          pattern: '^[^\s#]+$'
+          pattern: '^[^\s#]*$'
         example: templateName
     put:
       tags:
@@ -2594,7 +2744,7 @@ paths:
               properties:
                 templateName:
                   type: string
-                  pattern: '^[^\s#]+$'
+                  pattern: '^[^\s#]*$'
                 subject:
                   type: string
                   description: subject of the mail this template is used for
@@ -2793,7 +2943,7 @@ paths:
         required: true
         schema:
           type: string
-          pattern: '^[^\s#]+$'
+          pattern: '^[^\s#]*$'
         example: templateName
       - name: includesType
         in: path
@@ -3064,7 +3214,7 @@ paths:
                       properties:
                         disclaimerName:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         addHTMLPart:
                           type: boolean
                           description: >-
@@ -3202,7 +3352,7 @@ paths:
               properties:
                 disclaimerName:
                   type: string
-                  pattern: '^[^\s#]+$'
+                  pattern: '^[^\s#]*$'
                 addHTMLPart:
                   type: boolean
                   description: >-
@@ -3372,7 +3522,7 @@ paths:
         required: true
         schema:
           type: string
-          pattern: '^[^\s#]+$'
+          pattern: '^[^\s#]*$'
         example: templateName
     put:
       tags:
@@ -3396,7 +3546,7 @@ paths:
               properties:
                 disclaimerName:
                   type: string
-                  pattern: '^[^\s#]+$'
+                  pattern: '^[^\s#]*$'
                 addHTMLPart:
                   type: boolean
                   description: >-
@@ -3602,7 +3752,7 @@ paths:
         required: true
         schema:
           type: string
-          pattern: '^[^\s#]+$'
+          pattern: '^[^\s#]*$'
         example: templateName
       - name: includesType
         in: path
@@ -3979,28 +4129,28 @@ paths:
                                 properties:
                                   initial:
                                     type: string
-                                    pattern: '^[^\s#]+$'
+                                    pattern: '^[^\s#]*$'
                                   reply:
                                     type: string
-                                    pattern: '^[^\s#]+$'
+                                    pattern: '^[^\s#]*$'
                               templates:
                                 type: object
                                 properties:
                                   bounce_noauth:
                                     type: string
-                                    pattern: '^[^\s#]+$'
+                                    pattern: '^[^\s#]*$'
                                   bounce_noenc:
                                     type: string
-                                    pattern: '^[^\s#]+$'
+                                    pattern: '^[^\s#]*$'
                                   bounce_noseckey:
                                     type: string
-                                    pattern: '^[^\s#]+$'
+                                    pattern: '^[^\s#]*$'
                                   bounce_policy:
                                     type: string
-                                    pattern: '^[^\s#]+$'
+                                    pattern: '^[^\s#]*$'
                                   sendpgpkeys:
                                     type: string
-                                    pattern: '^[^\s#]+$'
+                                    pattern: '^[^\s#]*$'
                               externalAuthentication:
                                 type: object
                                 properties:
@@ -4285,28 +4435,28 @@ paths:
                       properties:
                         initial:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         reply:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                     templates:
                       type: object
                       properties:
                         bounce_noauth:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         bounce_noenc:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         bounce_noseckey:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         bounce_policy:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         sendpgpkeys:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                     externalAuthentication:
                       type: object
                       properties:
@@ -4547,28 +4697,28 @@ paths:
                       properties:
                         initial:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         reply:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                     templates:
                       type: object
                       properties:
                         bounce_noauth:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         bounce_noenc:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         bounce_noseckey:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         bounce_policy:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                         sendpgpkeys:
                           type: string
-                          pattern: '^[^\s#]+$'
+                          pattern: '^[^\s#]*$'
                     externalAuthentication:
                       type: object
                       properties:
@@ -5263,6 +5413,969 @@ paths:
                                 - enabled
                                 - locked by admin
                                 - locked temporarily
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+  /filter/config/:
+    get:
+      tags:
+        - filter / config
+      summary: Get filter scope configurations
+      description: With this GET request you can get filter scope configurations.
+      operationId: filter_config_get
+      x-mojo-to: 'RestAPI::Filter::Config#api_get'
+      parameters:
+        - in: query
+          name: list
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: 'if true, return an array of names instead of detailed information'
+        - name: scope
+          in: query
+          description: limit output to a specified scope
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: string
+            oneOf:
+              - type: string
+                pattern: ^\$GLOBAL$
+                example: $GLOBAL
+              - type: string
+                pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                example: '%domain.com'
+              - type: string
+                format: email
+                example: jane.doe@domain.com
+          example: jane.doe@domain.com
+      responses:
+        '200':
+          description: A JSON object holding the information about filter config scopes
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    title: Get filter config object scheme
+                    additionalProperties:
+                      type: object
+                      title: section
+                      additionalProperties:
+                        type: object
+                        title: option
+                        additionalProperties:
+                          type: string
+                  - type: array
+                    items:
+                      type: string
+                      oneOf:
+                        - type: string
+                          pattern: ^\$GLOBAL$
+                          example: $GLOBAL
+                        - type: string
+                          pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                          example: '%domain.com'
+                        - type: string
+                          format: email
+                          example: jane.doe@domain.com
+                    example:
+                      - john.doe@domain.com
+                      - $GLOBAL
+                      - '%domain.com'
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+    post:
+      tags:
+        - filter / config
+      summary: Add a new filter scope configuration.
+      description: Adds a new filter scope configuration
+      operationId: filter_config_add
+      x-mojo-to: 'RestAPI::Filter::Config#api_add'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scope:
+                  type: string
+                  oneOf:
+                    - type: string
+                      pattern: ^\$GLOBAL$
+                      example: $GLOBAL
+                    - type: string
+                      pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                      example: '%domain.com'
+                    - type: string
+                      format: email
+                      example: jane.doe@domain.com
+                config:
+                  type: object
+                  example:
+                    sectionName1:
+                      objectName1: value1
+                      objectName2: value2
+                    sectionName2:
+                      objectName1: value1
+                      objectName2: value2
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+  '/filter/config/{scope}':
+    parameters:
+      - name: scope
+        in: path
+        description: limit output to a specified scope
+        allowEmptyValue: false
+        style: simple
+        required: true
+        x-mojo-placeholder: '#'
+        schema:
+          type: string
+          oneOf:
+            - type: string
+              pattern: ^\$GLOBAL$
+              example: $GLOBAL
+            - type: string
+              pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+              example: '%domain.com'
+            - type: string
+              format: email
+              example: jane.doe@domain.com
+        example: $GLOBAL
+    get:
+      tags:
+        - filter / config
+      summary: Get configuration of a filter scope
+      description: With this GET request you can get the configuration of a filter scope.
+      operationId: filter_config_scope_get
+      x-mojo-to:
+        - 'RestAPI::Filter::Config#api_get'
+        - list: false
+      responses:
+        '200':
+          description: A JSON object holding the information about a filter config scope
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Get filter config object scheme
+                additionalProperties:
+                  type: object
+                  title: section
+                  additionalProperties:
+                    type: object
+                    title: option
+                    additionalProperties:
+                      type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+    put:
+      tags:
+        - filter / config
+      summary: Modify a filter config
+      description: >-
+        With this PUT request you can change a filter config for a scope. Only
+        specified values will be changed.
+      operationId: filter_config_scope_modify
+      x-mojo-to: 'RestAPI::Filter::Config#api_modify'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - config
+              properties:
+                config:
+                  type: object
+                  example:
+                    sectionName1:
+                      objectName1: value1
+                      objectName2: value2
+                    sectionName2:
+                      objectName1: value1
+                      objectName2: value2
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+    delete:
+      tags:
+        - filter / config
+      summary: Delete a filter config
+      description: With this DELETE request you can delete a filter config scope.
+      operationId: filter_config_scope_delete
+      x-mojo-to: 'RestAPI::Filter::Config#api_delete'
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+  /filter/blwl/:
+    get:
+      tags:
+        - filter / blwl
+      summary: Get filter black- and whitelisting
+      description: With this GET request you can get filter black- and whitelistings.
+      operationId: filter_blwl_get
+      x-mojo-to: 'RestAPI::Filter::BlackWhiteListing#api_get'
+      parameters:
+        - in: query
+          name: list
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: 'if true, return an array of names instead of detailed information'
+        - name: scope
+          in: query
+          description: limit output to a specified scope
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: string
+            oneOf:
+              - type: string
+                pattern: ^\$GLOBAL$
+                example: $GLOBAL
+              - type: string
+                pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                example: '%domain.com'
+              - type: string
+                format: email
+                example: jane.doe@domain.com
+          example: jane.doe@domain.com
+        - name: listID
+          in: query
+          description: limit output to a specified filter list ID
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          example: 42
+        - name: listType
+          in: query
+          description: limit output to a specified filter list type
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: string
+            enum:
+              - block
+              - welcome
+            default: block
+          example: block
+        - name: listScope
+          in: query
+          description: limit output to a specified filter list scope
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: string
+            description: >-
+              any (apply listing to envelope sender and header), env (apply to
+              envelope sender only), hdr (apply to headers only)
+            enum:
+              - any
+              - env
+              - hdr
+            default: any
+          example: any
+        - name: senderAddress
+          in: query
+          description: limit output to a specified filter list address
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: string
+            nullable: true
+            oneOf:
+              - type: string
+                nullable: true
+                minLength: 0
+                maxLength: 0
+                description: String representing a null
+              - type: string
+                minLength: 0
+                maxLength: 0
+                default: ''
+                description: An empty string
+              - type: string
+                pattern: '^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                example: '*.domain.com'
+              - type: string
+                pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                example: '%domain.com'
+              - type: string
+                format: email
+                example: jane.doe@domain.com
+            example: '%domain.com'
+          example: jane.doe@domain.com
+        - name: senderHost
+          in: query
+          description: limit output to a specified scope
+          allowEmptyValue: false
+          required: false
+          schema:
+            type: string
+            nullable: true
+            oneOf:
+              - type: string
+                nullable: true
+                minLength: 0
+                maxLength: 0
+                description: String representing a null
+              - anyOf:
+                  - type: string
+                    format: ipv4
+                  - type: string
+                    format: ipv6
+                  - type: string
+                    format: hostname
+              - type: string
+                pattern: '^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                example: '*.domain.com'
+            example: 10.20.30.40
+          example: host.name
+      responses:
+        '200':
+          description: A JSON object holding the information about filter list entries
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: array
+                    title: Get filter list array scheme
+                    items:
+                      allOf:
+                        - type: object
+                          title: Filter list base object scheme
+                          properties:
+                            listType:
+                              type: string
+                              enum:
+                                - block
+                                - welcome
+                              default: block
+                            listScope:
+                              type: string
+                              description: >-
+                                any (apply listing to envelope sender and
+                                header), env (apply to envelope sender only),
+                                hdr (apply to headers only)
+                              enum:
+                                - any
+                                - env
+                                - hdr
+                              default: any
+                            senderAddress:
+                              type: string
+                              nullable: true
+                              oneOf:
+                                - type: string
+                                  nullable: true
+                                  minLength: 0
+                                  maxLength: 0
+                                  description: String representing a null
+                                - type: string
+                                  minLength: 0
+                                  maxLength: 0
+                                  default: ''
+                                  description: An empty string
+                                - type: string
+                                  pattern: >-
+                                    ^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                                  example: '*.domain.com'
+                                - type: string
+                                  pattern: >-
+                                    ^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                                  example: '%domain.com'
+                                - type: string
+                                  format: email
+                                  example: jane.doe@domain.com
+                              example: '%domain.com'
+                            senderHost:
+                              type: string
+                              nullable: true
+                              oneOf:
+                                - type: string
+                                  nullable: true
+                                  minLength: 0
+                                  maxLength: 0
+                                  description: String representing a null
+                                - anyOf:
+                                    - type: string
+                                      format: ipv4
+                                    - type: string
+                                      format: ipv6
+                                    - type: string
+                                      format: hostname
+                                - type: string
+                                  pattern: >-
+                                    ^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                                  example: '*.domain.com'
+                              example: 10.20.30.40
+                            netmask:
+                              type: integer
+                              minimum: -1
+                              example: 1
+                            scope:
+                              type: string
+                              oneOf:
+                                - type: string
+                                  pattern: ^\$GLOBAL$
+                                  example: $GLOBAL
+                                - type: string
+                                  pattern: >-
+                                    ^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                                  example: '%domain.com'
+                                - type: string
+                                  format: email
+                                  example: jane.doe@domain.com
+                        - type: object
+                          properties:
+                            lasthit:
+                              type: string
+                              format: date-time
+                            hitcount:
+                              type: integer
+                              example: 1
+                        - type: object
+                          properties:
+                            listID:
+                              type: integer
+                              format: int64
+                              minimum: 1
+                  - type: array
+                    items:
+                      type: integer
+                      format: int64
+                      minimum: 1
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+    post:
+      tags:
+        - filter / blwl
+      summary: Add a new filter scope configuration.
+      description: Adds a new filter scope configuration
+      operationId: filter_blwl_add
+      x-mojo-to: 'RestAPI::Filter::BlackWhiteListing#api_add'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - listType
+                - listScope
+                - senderAddress
+                - senderHost
+                - netmask
+                - scope
+              type: object
+              title: Filter list base object scheme
+              properties:
+                listType:
+                  type: string
+                  enum:
+                    - block
+                    - welcome
+                  default: block
+                listScope:
+                  type: string
+                  description: >-
+                    any (apply listing to envelope sender and header), env
+                    (apply to envelope sender only), hdr (apply to headers only)
+                  enum:
+                    - any
+                    - env
+                    - hdr
+                  default: any
+                senderAddress:
+                  type: string
+                  nullable: true
+                  oneOf:
+                    - type: string
+                      nullable: true
+                      minLength: 0
+                      maxLength: 0
+                      description: String representing a null
+                    - type: string
+                      minLength: 0
+                      maxLength: 0
+                      default: ''
+                      description: An empty string
+                    - type: string
+                      pattern: '^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                      example: '*.domain.com'
+                    - type: string
+                      pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                      example: '%domain.com'
+                    - type: string
+                      format: email
+                      example: jane.doe@domain.com
+                  example: '%domain.com'
+                senderHost:
+                  type: string
+                  nullable: true
+                  oneOf:
+                    - type: string
+                      nullable: true
+                      minLength: 0
+                      maxLength: 0
+                      description: String representing a null
+                    - anyOf:
+                        - type: string
+                          format: ipv4
+                        - type: string
+                          format: ipv6
+                        - type: string
+                          format: hostname
+                    - type: string
+                      pattern: '^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                      example: '*.domain.com'
+                  example: 10.20.30.40
+                netmask:
+                  type: integer
+                  minimum: -1
+                  example: 1
+                scope:
+                  type: string
+                  oneOf:
+                    - type: string
+                      pattern: ^\$GLOBAL$
+                      example: $GLOBAL
+                    - type: string
+                      pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                      example: '%domain.com'
+                    - type: string
+                      format: email
+                      example: jane.doe@domain.com
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+  '/filter/blwl/{listID}':
+    parameters:
+      - name: listID
+        in: path
+        description: limit output to a specified filter list ID
+        allowEmptyValue: false
+        style: simple
+        required: true
+        x-mojo-placeholder: '#'
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+        example: 42
+    get:
+      tags:
+        - filter / blwl
+      summary: Get filter black- and whitelisting
+      description: With this GET request you can get filter black- and whitelistings.
+      operationId: filter_blwl_listid_get
+      x-mojo-to: 'RestAPI::Filter::BlackWhiteListing#api_get'
+      responses:
+        '200':
+          description: A JSON object holding the information about a filter list entry
+          content:
+            application/json:
+              schema:
+                type: array
+                title: Get filter list array scheme
+                items:
+                  allOf:
+                    - type: object
+                      title: Filter list base object scheme
+                      properties:
+                        listType:
+                          type: string
+                          enum:
+                            - block
+                            - welcome
+                          default: block
+                        listScope:
+                          type: string
+                          description: >-
+                            any (apply listing to envelope sender and header),
+                            env (apply to envelope sender only), hdr (apply to
+                            headers only)
+                          enum:
+                            - any
+                            - env
+                            - hdr
+                          default: any
+                        senderAddress:
+                          type: string
+                          nullable: true
+                          oneOf:
+                            - type: string
+                              nullable: true
+                              minLength: 0
+                              maxLength: 0
+                              description: String representing a null
+                            - type: string
+                              minLength: 0
+                              maxLength: 0
+                              default: ''
+                              description: An empty string
+                            - type: string
+                              pattern: >-
+                                ^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                              example: '*.domain.com'
+                            - type: string
+                              pattern: >-
+                                ^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                              example: '%domain.com'
+                            - type: string
+                              format: email
+                              example: jane.doe@domain.com
+                          example: '%domain.com'
+                        senderHost:
+                          type: string
+                          nullable: true
+                          oneOf:
+                            - type: string
+                              nullable: true
+                              minLength: 0
+                              maxLength: 0
+                              description: String representing a null
+                            - anyOf:
+                                - type: string
+                                  format: ipv4
+                                - type: string
+                                  format: ipv6
+                                - type: string
+                                  format: hostname
+                            - type: string
+                              pattern: >-
+                                ^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                              example: '*.domain.com'
+                          example: 10.20.30.40
+                        netmask:
+                          type: integer
+                          minimum: -1
+                          example: 1
+                        scope:
+                          type: string
+                          oneOf:
+                            - type: string
+                              pattern: ^\$GLOBAL$
+                              example: $GLOBAL
+                            - type: string
+                              pattern: >-
+                                ^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                              example: '%domain.com'
+                            - type: string
+                              format: email
+                              example: jane.doe@domain.com
+                    - type: object
+                      properties:
+                        lasthit:
+                          type: string
+                          format: date-time
+                        hitcount:
+                          type: integer
+                          example: 1
+                    - type: object
+                      properties:
+                        listID:
+                          type: integer
+                          format: int64
+                          minimum: 1
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+    put:
+      tags:
+        - filter / blwl
+      summary: Modify a filter black-/whitelisting entry
+      description: >-
+        With this PUT request you can change a filter black-/whitelisting entry.
+        Only specified values will be changed.
+      operationId: filter_blwl_listid_modify
+      x-mojo-to: 'RestAPI::Filter::BlackWhiteListing#api_modify'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  title: Filter list base object scheme
+                  properties:
+                    listType:
+                      type: string
+                      enum:
+                        - block
+                        - welcome
+                      default: block
+                    listScope:
+                      type: string
+                      description: >-
+                        any (apply listing to envelope sender and header), env
+                        (apply to envelope sender only), hdr (apply to headers
+                        only)
+                      enum:
+                        - any
+                        - env
+                        - hdr
+                      default: any
+                    senderAddress:
+                      type: string
+                      nullable: true
+                      oneOf:
+                        - type: string
+                          nullable: true
+                          minLength: 0
+                          maxLength: 0
+                          description: String representing a null
+                        - type: string
+                          minLength: 0
+                          maxLength: 0
+                          default: ''
+                          description: An empty string
+                        - type: string
+                          pattern: >-
+                            ^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                          example: '*.domain.com'
+                        - type: string
+                          pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                          example: '%domain.com'
+                        - type: string
+                          format: email
+                          example: jane.doe@domain.com
+                      example: '%domain.com'
+                    senderHost:
+                      type: string
+                      nullable: true
+                      oneOf:
+                        - type: string
+                          nullable: true
+                          minLength: 0
+                          maxLength: 0
+                          description: String representing a null
+                        - anyOf:
+                            - type: string
+                              format: ipv4
+                            - type: string
+                              format: ipv6
+                            - type: string
+                              format: hostname
+                        - type: string
+                          pattern: >-
+                            ^\*\.((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$
+                          example: '*.domain.com'
+                      example: 10.20.30.40
+                    netmask:
+                      type: integer
+                      minimum: -1
+                      example: 1
+                    scope:
+                      type: string
+                      oneOf:
+                        - type: string
+                          pattern: ^\$GLOBAL$
+                          example: $GLOBAL
+                        - type: string
+                          pattern: '^%((?!-)[A-Za-z0-9\-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$'
+                          example: '%domain.com'
+                        - type: string
+                          format: email
+                          example: jane.doe@domain.com
+                - type: object
+                  properties:
+                    lasthit:
+                      type: string
+                      format: date-time
+                    hitcount:
+                      type: integer
+                      example: 1
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: An general error response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: General error scheme
+                properties:
+                  errorCode:
+                    type: integer
+                    format: int32
+                  errorMessage:
+                    type: string
+    delete:
+      tags:
+        - filter / blwl
+      summary: Delete a filter black- and whitelisting
+      description: >-
+        With this DELETE request you can delete a filter black-/whitelisting
+        entry.
+      operationId: filter_blwl_listid_delete
+      x-mojo-to: 'RestAPI::Filter::BlackWhiteListing#api_delete'
+      responses:
+        '200':
+          description: A success message
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Success message scheme
+                properties:
+                  message:
+                    type: string
         '500':
           description: An general error response
           content:
